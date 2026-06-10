@@ -1,5 +1,5 @@
 /**
- * Batch profile generation for Bagel.
+ * Batch profile generation for y'all (yall.bio).
  *
  * Usage:
  *   bun run generate                  # process everyone with status "queued"

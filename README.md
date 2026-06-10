@@ -1,12 +1,13 @@
-# Bagel 🥯
+# y'all
 
 **A public wiki of everyone in a field.** Upload a list of names, point an AI
 research agent at them, and get a fast, searchable directory where every person
 has a wikipedia-style page they can claim and correct.
 
-Codename "Bagel" — built for communities like EA / AI safety / forecasting,
-where "who is this person?" is a question people ask constantly. See
-[SPEC.md](./SPEC.md) for the original product spec.
+Live at **[yall.bio](https://yall.bio)**. Built for communities like EA /
+AI safety / forecasting, where "who is this person?" is a question people ask
+constantly. (Repo codename: bagel 🥯.) See [SPEC.md](./SPEC.md) for the
+original product spec.
 
 ## What it does
 

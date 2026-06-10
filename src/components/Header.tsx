@@ -5,25 +5,6 @@ import { usePathname } from 'next/navigation';
 import { db } from '@/lib/db';
 import { useViewer } from '@/lib/useViewer';
 
-function BagelMark() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="w-6 h-6"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" />
-      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="8" cy="7" r="0.8" fill="currentColor" />
-      <circle cx="16" cy="6.5" r="0.8" fill="currentColor" />
-      <circle cx="18.5" cy="13" r="0.8" fill="currentColor" />
-      <circle cx="6" cy="14" r="0.8" fill="currentColor" />
-      <circle cx="12" cy="19" r="0.8" fill="currentColor" />
-    </svg>
-  );
-}
-
 export default function Header() {
   const pathname = usePathname();
   const { user, isAdmin } = useViewer();
@@ -46,14 +27,11 @@ export default function Header() {
   return (
     <header className="border-b border-line bg-paper/90 backdrop-blur sticky top-0 z-40">
       <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="text-accent group-hover:rotate-90 transition-transform duration-500">
-            <BagelMark />
+        <Link href="/" className="flex items-baseline gap-2 group">
+          <span className="font-display text-2xl font-semibold tracking-tight lowercase">
+            y<span className="text-accent group-hover:text-accent-deep transition-colors">’</span>all
           </span>
-          <span className="font-display text-xl font-semibold tracking-tight">
-            Bagel
-          </span>
-          <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-widest text-faint mt-1">
+          <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-widest text-faint">
             a wiki of everyone
           </span>
         </Link>

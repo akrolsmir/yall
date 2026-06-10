@@ -1,5 +1,5 @@
 /**
- * Seed Bagel with the initial list of people.
+ * Seed y'all with the initial list of people.
  * Usage: bun run seed
  */
 

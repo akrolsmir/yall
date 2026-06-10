@@ -22,7 +22,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Bagel — a wiki of everyone',
+  metadataBase: new URL('https://yall.bio'),
+  title: "y'all — a wiki of everyone",
   description:
     'A public wiki and directory of the people in a field. Search, browse, and claim your profile.',
 };
@@ -41,7 +42,7 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <footer className="border-t border-line mt-16">
           <div className="mx-auto max-w-6xl px-6 py-6 flex items-center justify-between text-xs text-faint font-mono">
-            <span>BAGEL · a wiki of everyone</span>
+            <span>y’all · a wiki of everyone · yall.bio</span>
             <span>profiles are AI-drafted — claim yours to correct it</span>
           </div>
         </footer>
