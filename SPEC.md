@@ -41,3 +41,15 @@ codename “Bagel”, official name to be chosen later
 - everyone, all,
 - plenty
 - peoplewiki, kiwi
+
+
+### Modifications
+Some modifications:                                                                              
+  - When searching for a name, show an option at the bottom to create a new entry, if this person  
+  doesn't exist (or if we're trying to create an entry for a person with a different name). Have   
+  an optional field to put in a bit of context (eg a linkedin link or a 1 sentence where they're   
+  from) to help guide future profile generation. (But don't generate profile yet)                  
+  - Have two options for profile scraping, one "fast" using small models (eg latest haiku) and     
+  with fewer passes, and one "deep" which uses                                                     
+  - Make the two options available as buttons on the /p/<person> page, which anyone can click      
+  - The UI should display the current profile generating progress, kind of like a thinking trace

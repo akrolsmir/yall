@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { db } from '@/lib/db';
 import { STATUS_LABELS, PersonStatus } from '@/lib/types';
 
@@ -193,9 +194,9 @@ export default function DirectoryPage() {
           </p>
         )}
 
-        {!isLoading && !error && filtered.length === 0 && (
+        {!isLoading && !error && filtered.length === 0 && !query.trim() && (
           <p className="px-4 py-12 text-center text-sm text-faint">
-            No one matches{query ? ` “${query}”` : ' these filters'}.
+            No one matches these filters.
           </p>
         )}
 
@@ -261,7 +262,109 @@ export default function DirectoryPage() {
             remaining)
           </button>
         )}
+
+        {query.trim() && <AddPersonRow query={query.trim()} noMatches={filtered.length === 0} />}
       </section>
     </div>
+  );
+}
+
+function AddPersonRow({
+  query,
+  noMatches,
+}: {
+  query: string;
+  noMatches: boolean;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(query);
+  const [context, setContext] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/people', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, context }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to add');
+      router.push(`/p/${json.slug}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add');
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => {
+          setName(query);
+          setOpen(true);
+        }}
+        className="w-full px-4 py-4 text-left border-t border-dashed border-line hover:bg-accent-wash/40 transition-colors group"
+      >
+        <span className="text-sm text-ink-soft">
+          {noMatches ? 'No one matches.' : 'Not the person you’re after?'}{' '}
+        </span>
+        <span className="text-sm font-medium text-accent group-hover:text-accent-deep">
+          + Add “{query}” to the index
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="border-t border-dashed border-line px-4 py-4 space-y-3 bg-paper-deep/40"
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+        Add a person
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          placeholder="Full name"
+          className="flex-1 min-w-48 bg-card border border-line px-3 py-2 text-sm outline-none focus:border-accent placeholder:text-faint"
+        />
+        <input
+          value={context}
+          onChange={(e) => setContext(e.target.value)}
+          placeholder="Optional context — a LinkedIn URL, or “runs ops at Lightcone”"
+          className="flex-[2] min-w-64 bg-card border border-line px-3 py-2 text-sm outline-none focus:border-accent placeholder:text-faint"
+        />
+      </div>
+      <p className="text-xs text-faint">
+        Context helps the research agent find the right person later. The page
+        is created empty — generate a profile from it whenever you like.
+      </p>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy || !name.trim()}
+          className="font-mono text-[10px] uppercase tracking-widest bg-accent text-paper px-4 py-2 hover:bg-accent-deep transition-colors disabled:opacity-50"
+        >
+          {busy ? 'Adding…' : 'Add to index'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="font-mono text-[10px] uppercase tracking-widest text-faint hover:text-ink transition-colors"
+        >
+          Cancel
+        </button>
+        {error && <span className="text-xs text-accent-deep">{error}</span>}
+      </div>
+    </form>
   );
 }

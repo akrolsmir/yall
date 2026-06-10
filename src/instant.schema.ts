@@ -27,6 +27,8 @@ const _schema = i.schema({
       tags: i.json<string[]>().optional(), // plaintext field affiliations
       // none | queued | generating | generated | failed
       status: i.string().indexed(),
+      // Free-text hint for the research agent ("LinkedIn: …", "runs X at Y")
+      context: i.string().optional(),
       humanEdited: i.boolean().optional(),
       createdAt: i.number().indexed(),
       updatedAt: i.number().optional(),
@@ -43,6 +45,15 @@ const _schema = i.schema({
     sources: i.entity({
       description: i.string(),
       createdAt: i.number().indexed(),
+    }),
+    // One per profile-generation attempt; trace streams to the UI live
+    runs: i.entity({
+      mode: i.string(), // fast | deep
+      status: i.string().indexed(), // running | done | failed
+      trace: i.json<{ t: number; kind: string; text: string }[]>().optional(),
+      error: i.string().optional(),
+      createdAt: i.number().indexed(),
+      finishedAt: i.number().optional(),
     }),
     // Claim requests that need admin approval (no email match)
     claims: i.entity({
@@ -77,6 +88,10 @@ const _schema = i.schema({
     personClaimedBy: {
       forward: { on: "people", has: "one", label: "claimedBy" },
       reverse: { on: "$users", has: "many", label: "claimedPeople" },
+    },
+    runPerson: {
+      forward: { on: "runs", has: "one", label: "person" },
+      reverse: { on: "people", has: "many", label: "runs" },
     },
     claimPerson: {
       forward: { on: "claims", has: "one", label: "person" },

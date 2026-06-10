@@ -1,12 +1,15 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
-import { id } from '@instantdb/react';
+import { id, InstaQLEntity } from '@instantdb/react';
 import { db } from '@/lib/db';
 import { useViewer } from '@/lib/useViewer';
+import { AppSchema } from '@/instant.schema';
 import { PersonFull, STATUS_LABELS, PersonStatus } from '@/lib/types';
+
+type Run = InstaQLEntity<AppSchema, 'runs'>;
 
 export default function PersonPage({
   params,
@@ -29,6 +32,17 @@ export default function PersonPage({
   const { data: claimsData } = db.useQuery(
     viewer.user ? { claims: { person: {} } } : null,
   );
+  // Latest generation run — its trace renders live while it works
+  const { data: runsData } = db.useQuery({
+    runs: {
+      $: {
+        where: { 'person.slug': slug },
+        order: { createdAt: 'desc' },
+        limit: 1,
+      },
+    },
+  });
+  const latestRun = (runsData?.runs?.[0] ?? null) as Run | null;
 
   if (isLoading) {
     return (
@@ -117,6 +131,7 @@ export default function PersonPage({
               Edit
             </button>
           )}
+          {!editing && <GenerateButtons person={person} />}
         </div>
       </div>
 
@@ -128,6 +143,12 @@ export default function PersonPage({
         <div className="grid md:grid-cols-[1fr_260px] gap-10 pt-8">
           {/* Main column */}
           <article className="min-w-0">
+            {latestRun &&
+              (latestRun.status === 'running' ||
+                person.status === 'generating' ||
+                (latestRun.status === 'failed' && !person.profile?.article)) && (
+                <RunTrace run={latestRun} />
+              )}
             {person.profile?.summary ? (
               <div className="prose-article text-[1.125rem] text-ink-soft border-l-2 border-accent pl-5 mb-8">
                 <ReactMarkdown>{person.profile.summary}</ReactMarkdown>
@@ -137,16 +158,17 @@ export default function PersonPage({
               <div className="prose-article">
                 <ReactMarkdown>{person.profile.article}</ReactMarkdown>
               </div>
-            ) : (
+            ) : person.status === 'generating' ? null : (
               <div className="py-12 text-center border border-dashed border-line">
                 <p className="font-display text-xl text-ink-soft mb-1">
                   No article yet
                 </p>
-                <p className="text-sm text-faint">
-                  {person.status === 'queued' || person.status === 'generating'
-                    ? 'A profile is being researched and written now.'
+                <p className="text-sm text-faint mb-4">
+                  {person.status === 'queued'
+                    ? 'A profile is queued to be researched and written.'
                     : 'This person is in the index but their page hasn’t been written.'}
                 </p>
+                <GenerateButtons person={person} />
               </div>
             )}
             {person.profile?.generatedAt && !person.humanEdited && (
@@ -226,6 +248,134 @@ export default function PersonPage({
             />
           </aside>
         </div>
+      )}
+    </div>
+  );
+}
+
+function GenerateButtons({ person }: { person: PersonFull }) {
+  const [busyMode, setBusyMode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const generating = person.status === 'generating';
+
+  const kickOff = async (mode: 'fast' | 'deep') => {
+    setBusyMode(mode);
+    setError(null);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personId: person.id, mode }),
+      });
+      // The run's live trace shows progress; we only surface kickoff errors.
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || 'Failed to start');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start');
+    } finally {
+      setBusyMode(null);
+    }
+  };
+
+  return (
+    <span className="inline-flex flex-col items-end gap-1">
+      <span className="inline-flex gap-2">
+        <button
+          onClick={() => kickOff('fast')}
+          disabled={generating || !!busyMode}
+          title="Haiku, up to 3 web searches — a quick draft in ~30s"
+          className="font-mono text-[10px] uppercase tracking-widest border border-accent text-accent px-3 py-1 hover:bg-accent hover:text-paper transition-colors disabled:opacity-40"
+        >
+          {generating ? 'Working…' : '⚡ Fast profile'}
+        </button>
+        <button
+          onClick={() => kickOff('deep')}
+          disabled={generating || !!busyMode}
+          title="Opus, up to 10 web searches with extended thinking — a few minutes"
+          className="font-mono text-[10px] uppercase tracking-widest bg-accent text-paper px-3 py-1 hover:bg-accent-deep transition-colors disabled:opacity-40"
+        >
+          {generating ? 'Working…' : '◉ Deep research'}
+        </button>
+      </span>
+      {error && <span className="text-xs text-accent-deep">{error}</span>}
+    </span>
+  );
+}
+
+const TRACE_GLYPHS: Record<string, string> = {
+  status: '◌',
+  search: '⌕',
+  results: '≡',
+  thinking: '…',
+  draft: '✎',
+  done: '✓',
+  error: '✗',
+};
+
+function RunTrace({ run }: { run: Run }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const events = run.trace ?? [];
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [events.length]);
+
+  return (
+    <div className="mb-8 border border-line bg-ink text-paper/90">
+      <div className="px-4 py-2 flex items-center justify-between border-b border-paper/15">
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/60">
+          {run.mode === 'deep' ? 'Deep research' : 'Fast profile'} ·{' '}
+          {run.status === 'running' ? (
+            <span className="text-accent-wash pulse-soft">researching…</span>
+          ) : run.status === 'failed' ? (
+            <span className="text-red-300">failed</span>
+          ) : (
+            'done'
+          )}
+        </span>
+        <span className="font-mono text-[10px] text-paper/40">
+          {events.length} steps
+        </span>
+      </div>
+      <div
+        ref={scrollRef}
+        className="max-h-64 overflow-y-auto px-4 py-3 space-y-1.5 font-mono text-xs leading-relaxed"
+      >
+        {events.length === 0 && (
+          <p className="text-paper/50 pulse-soft">Warming up…</p>
+        )}
+        {events.map((e, i) => (
+          <p
+            key={i}
+            className={
+              e.kind === 'thinking'
+                ? 'text-paper/50 italic'
+                : e.kind === 'search'
+                  ? 'text-accent-wash'
+                  : e.kind === 'error'
+                    ? 'text-red-300'
+                    : e.kind === 'done'
+                      ? 'text-green-300'
+                      : 'text-paper/75'
+            }
+          >
+            <span className="select-none mr-2 text-paper/40">
+              {TRACE_GLYPHS[e.kind] ?? '·'}
+            </span>
+            {e.text}
+          </p>
+        ))}
+        {run.status === 'running' && (
+          <p className="text-paper/40 pulse-soft select-none">▋</p>
+        )}
+      </div>
+      {run.status === 'failed' && run.error && (
+        <p className="px-4 py-2 border-t border-paper/15 text-xs text-red-300">
+          {run.error} — you can retry with the buttons above.
+        </p>
       )}
     </div>
   );

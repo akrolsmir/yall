@@ -34,6 +34,16 @@ const rules = {
     },
     bind: ["isAdmin", "auth.ref('$user.isAdmin')[0] == true"],
   },
+  runs: {
+    // Written only via the admin SDK in API routes; public read for the trace
+    allow: {
+      view: "true",
+      create: "false",
+      update: "false",
+      delete: "isAdmin",
+    },
+    bind: ["isAdmin", "auth.ref('$user.isAdmin')[0] == true"],
+  },
   sources: {
     allow: {
       view: "true",
