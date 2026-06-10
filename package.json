@@ -6,18 +6,27 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "bun scripts/seed.ts",
+    "generate": "bun scripts/generate-profiles.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "@instantdb/admin": "latest",
     "@instantdb/react": "latest",
     "next": "latest",
+    "papaparse": "^5.5.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^20.19.39",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
     "tailwindcss": "^4.2.4",

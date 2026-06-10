@@ -1,20 +1,30 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
+import Header from '@/components/Header';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const fraunces = Fraunces({
+  variable: '--font-fraunces',
   subsets: ['latin'],
+  axes: ['opsz', 'SOFT', 'WONK'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const plexSans = IBM_Plex_Sans({
+  variable: '--font-plex-sans',
   subsets: ['latin'],
+  weight: ['400', '500', '600'],
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: '--font-plex-mono',
+  subsets: ['latin'],
+  weight: ['400', '500'],
 });
 
 export const metadata: Metadata = {
-  title: 'Create Instant App',
-  description: 'Instant DB Starter App',
+  title: 'Bagel — a wiki of everyone',
+  description:
+    'A public wiki and directory of the people in a field. Search, browse, and claim your profile.',
 };
 
 export default function RootLayout({
@@ -25,9 +35,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        {children}
+        <Header />
+        <main className="flex-1">{children}</main>
+        <footer className="border-t border-line mt-16">
+          <div className="mx-auto max-w-6xl px-6 py-6 flex items-center justify-between text-xs text-faint font-mono">
+            <span>BAGEL · a wiki of everyone</span>
+            <span>profiles are AI-drafted — claim yours to correct it</span>
+          </div>
+        </footer>
       </body>
     </html>
   );

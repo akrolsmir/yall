@@ -1,26 +1,130 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Editorial almanac palette — warm paper, ink, toasted-sesame accent */
+  --color-paper: #f6f2ea;
+  --color-paper-deep: #efe9dd;
+  --color-card: #fdfbf7;
+  --color-ink: #211d16;
+  --color-ink-soft: #5b5346;
+  --color-faint: #8d8270;
+  --color-line: #ddd4c3;
+  --color-accent: #b4511e;
+  --color-accent-deep: #8c3a12;
+  --color-accent-wash: #f3e2d4;
+  --color-moss: #4e5d3a;
+  --color-moss-wash: #e7ead9;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+/* Hairline double-rule, like a reference book masthead */
+.rule-double {
+  border-top: 1px solid var(--color-ink);
+  position: relative;
+}
+.rule-double::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--color-ink);
+}
+
+/* Long-form article typography */
+.prose-article {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--color-ink);
+}
+.prose-article p {
+  margin-bottom: 1.1em;
+}
+.prose-article h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.45rem;
+  margin: 1.6em 0 0.6em;
+  letter-spacing: -0.01em;
+}
+.prose-article h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin: 1.4em 0 0.5em;
+}
+.prose-article a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.prose-article a:hover {
+  color: var(--color-accent-deep);
+}
+.prose-article ul,
+.prose-article ol {
+  margin: 0 0 1.1em 1.4em;
+}
+.prose-article ul {
+  list-style: disc;
+}
+.prose-article ol {
+  list-style: decimal;
+}
+.prose-article li {
+  margin-bottom: 0.35em;
+}
+.prose-article strong {
+  font-weight: 600;
+}
+.prose-article blockquote {
+  border-left: 2px solid var(--color-line);
+  padding-left: 1em;
+  color: var(--color-ink-soft);
+  font-style: italic;
+  margin-bottom: 1.1em;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise-in {
+  animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
 }
