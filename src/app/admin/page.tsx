@@ -234,6 +234,19 @@ function UploadPanel({ people }: { people: UploadPerson[] }) {
   const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [intake, setIntake] = useState<'csv' | 'paste'>('csv');
+  const [pasteText, setPasteText] = useState('');
+
+  // Comma- or newline-separated names; newlines win if both are present
+  const pastedNames = useMemo(() => {
+    const text = pasteText.trim();
+    if (!text) return [];
+    const parts = text.includes('\n') ? text.split('\n') : text.split(',');
+    return parts.map((s) => s.trim().replace(/,$/, '')).filter(Boolean);
+  }, [pasteText]);
+
+  const effectiveRows =
+    intake === 'csv' ? rows : pastedNames.map((name) => ({ name }));
 
   const parseFile = (file: File) => {
     setFileName(file.name);
@@ -264,7 +277,8 @@ function UploadPanel({ people }: { people: UploadPerson[] }) {
   };
 
   const importRows = async () => {
-    if (!rows.length || !description.trim()) return;
+    const rowsToImport = effectiveRows;
+    if (!rowsToImport.length || !description.trim()) return;
     setProgress('Preparing…');
     setResult(null);
 
@@ -280,7 +294,7 @@ function UploadPanel({ people }: { people: UploadPerson[] }) {
     const seenSlugs = new Set<string>();
     let skipped = 0;
 
-    for (const row of rows) {
+    for (const row of rowsToImport as { name: string; email?: string }[]) {
       let slug = slugify(row.name);
       if (!slug) {
         skipped++;
@@ -363,12 +377,13 @@ function UploadPanel({ people }: { people: UploadPerson[] }) {
     );
     setRows([]);
     setFileName(null);
+    setPasteText('');
     setDescription('');
     if (fileRef.current) fileRef.current.value = '';
   };
 
   return (
-    <Panel title="Upload people" hint="csv with name + optional email columns">
+    <Panel title="Upload people" hint="csv file or pasted names">
       <div className="grid sm:grid-cols-2 gap-5">
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -382,10 +397,29 @@ function UploadPanel({ people }: { people: UploadPerson[] }) {
               className="w-full bg-paper border border-line px-3 py-2 text-sm outline-none focus:border-accent placeholder:text-faint"
             />
           </div>
-          <div className="space-y-1.5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
-              CSV file
-            </p>
+
+          <div className="flex border border-line divide-x divide-line text-xs font-mono w-fit">
+            {(
+              [
+                ['csv', 'CSV file'],
+                ['paste', 'Paste names'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setIntake(value)}
+                className={`px-3 py-1.5 transition-colors ${
+                  intake === value
+                    ? 'bg-ink text-paper'
+                    : 'bg-card text-ink-soft hover:text-ink'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {intake === 'csv' ? (
             <input
               ref={fileRef}
               type="file"
@@ -396,33 +430,75 @@ function UploadPanel({ people }: { people: UploadPerson[] }) {
               }}
               className="w-full text-sm file:font-mono file:text-[10px] file:uppercase file:tracking-widest file:bg-ink file:text-paper file:border-0 file:px-3 file:py-2 file:mr-3 file:cursor-pointer text-ink-soft"
             />
-          </div>
+          ) : (
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              rows={5}
+              placeholder={'Alice Smith, Bob Jones, Carol Wu\n— or one name per line'}
+              className="w-full bg-paper border border-line px-3 py-2 text-sm outline-none focus:border-accent placeholder:text-faint font-mono"
+            />
+          )}
+
           <button
             onClick={importRows}
-            disabled={!rows.length || !description.trim() || !!progress}
+            disabled={!effectiveRows.length || !description.trim() || !!progress}
             className="font-mono text-[10px] uppercase tracking-widest bg-accent text-paper px-4 py-2 hover:bg-accent-deep transition-colors disabled:opacity-40"
           >
-            {progress ?? `Import ${rows.length.toLocaleString()} people`}
+            {progress ?? `Import ${effectiveRows.length.toLocaleString()} people`}
           </button>
           {result && <p className="text-xs text-moss">{result}</p>}
         </div>
         <div className="text-xs text-ink-soft space-y-2 border-l border-line pl-5">
-          <p className="font-medium text-ink">Format</p>
-          <p>
-            A header row with <code className="font-mono">name</code> and
-            optionally <code className="font-mono">email</code> columns — or no
-            header, with names in the first column.
-          </p>
+          {intake === 'csv' ? (
+            <>
+              <p className="font-medium text-ink">Format</p>
+              <p>
+                A header row with <code className="font-mono">name</code> and
+                optionally <code className="font-mono">email</code> columns —
+                or no header, with names in the first column.
+              </p>
+              {fileName && rows.length > 0 && (
+                <p className="text-moss font-mono">
+                  {fileName}: {rows.length.toLocaleString()} rows parsed ✓
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="font-medium text-ink">
+                Preview{' '}
+                {pastedNames.length > 0 &&
+                  `(${pastedNames.length.toLocaleString()} ${
+                    pastedNames.length === 1 ? 'name' : 'names'
+                  })`}
+              </p>
+              {pastedNames.length === 0 ? (
+                <p className="text-faint">
+                  Paste comma-separated or one-per-line names to see them
+                  parsed here.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {pastedNames.slice(0, 5).map((n, i) => (
+                    <li key={`${n}-${i}`} className="font-mono text-ink">
+                      {i + 1}. {n}
+                    </li>
+                  ))}
+                  {pastedNames.length > 5 && (
+                    <li className="text-faint">
+                      …and {(pastedNames.length - 5).toLocaleString()} more
+                    </li>
+                  )}
+                </ul>
+              )}
+            </>
+          )}
           <p>
             Re-uploading an existing person (same name) just attaches the new
             source; same name with a different email creates a separate page
             with a suffixed slug.
           </p>
-          {fileName && rows.length > 0 && (
-            <p className="text-moss font-mono">
-              {fileName}: {rows.length.toLocaleString()} rows parsed ✓
-            </p>
-          )}
         </div>
       </div>
     </Panel>
