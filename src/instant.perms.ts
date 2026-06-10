@@ -3,22 +3,55 @@
 import type { InstantRules } from "@instantdb/react";
 
 const rules = {
-  /**
-   * Welcome to Instant's permission system!
-   * Right now your rules are empty. To start filling them in, check out the docs:
-   * https://www.instantdb.com/docs/permissions
-   *
-   * Here's an example to give you a feel:
-   * posts: {
-   *   allow: {
-   *     view: "true",
-   *     create: "isOwner",
-   *     update: "isOwner",
-   *     delete: "isOwner",
-   *   },
-   *   bind: ["isOwner", "auth.id != null && auth.id == data.ownerId"],
-   * },
-   */
+  $users: {
+    allow: {
+      view: "auth.id == data.id",
+    },
+  },
+  people: {
+    allow: {
+      view: "true",
+      create: "isAdmin",
+      // Admins, the profile's claimer, or an email-matched user claiming an
+      // unclaimed profile (the claim link itself is set server-side)
+      update:
+        "isAdmin || isClaimer || (auth.email != null && auth.email == data.email && data.ref('claimedBy.id') == [])",
+      delete: "isAdmin",
+    },
+    bind: [
+      "isAdmin",
+      "auth.ref('$user.isAdmin')[0] == true",
+      "isClaimer",
+      "auth.id in data.ref('claimedBy.id')",
+    ],
+  },
+  profiles: {
+    allow: {
+      view: "true",
+      create: "isAdmin",
+      update: "isAdmin || auth.id in data.ref('person.claimedBy.id')",
+      delete: "isAdmin",
+    },
+    bind: ["isAdmin", "auth.ref('$user.isAdmin')[0] == true"],
+  },
+  sources: {
+    allow: {
+      view: "true",
+      create: "isAdmin",
+      update: "isAdmin",
+      delete: "isAdmin",
+    },
+    bind: ["isAdmin", "auth.ref('$user.isAdmin')[0] == true"],
+  },
+  claims: {
+    allow: {
+      view: "isAdmin || auth.id in data.ref('user.id')",
+      create: "auth.id != null && auth.id in data.ref('user.id')",
+      update: "isAdmin",
+      delete: "isAdmin || auth.id in data.ref('user.id')",
+    },
+    bind: ["isAdmin", "auth.ref('$user.isAdmin')[0] == true"],
+  },
 } satisfies InstantRules;
 
 export default rules;
