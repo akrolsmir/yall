@@ -53,3 +53,13 @@ Some modifications:
   with fewer passes, and one "deep" which uses                                                     
   - Make the two options available as buttons on the /p/<person> page, which anyone can click      
   - The UI should display the current profile generating progress, kind of like a thinking trace
+
+
+### Next notes
+- Slim down home page to 1 line
+- 1-sentence bio should exclude their own name, provide example
+- eventually want to scrape by org (eg paste in link to METR website and it generates the org + profiles for each)
+
+### Common problems
+- Profile out of date => I have context that the quick internet scrape doesn't have yet
+- Chat w/ LLM => LLM is dumb or missing context I have. (maybe I should ask it for stuff I'm bad at rather than good at.)

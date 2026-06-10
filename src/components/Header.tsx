@@ -37,6 +37,7 @@ export default function Header() {
         </Link>
         <nav className="flex items-center gap-1 sm:gap-3">
           {navLink('/', 'Directory')}
+          {user && navLink('/chat', 'Chat')}
           {isAdmin && navLink('/admin', 'Admin')}
           {user ? (
             <button

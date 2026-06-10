@@ -71,32 +71,6 @@ export default function DirectoryPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6">
-      {/* Masthead */}
-      <section className="pt-12 pb-8">
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-accent mb-3 rise-in">
-          The People Index
-        </p>
-        <h1
-          className="font-display font-semibold tracking-tight text-5xl sm:text-6xl leading-[1.05] rise-in"
-          style={{ animationDelay: '60ms' }}
-        >
-          Everyone in the field,
-          <br />
-          <span className="italic font-normal text-ink-soft">
-            one page each.
-          </span>
-        </h1>
-        <p
-          className="mt-4 max-w-xl text-ink-soft rise-in"
-          style={{ animationDelay: '120ms' }}
-        >
-          A public wiki of the people shaping this field — AI-drafted,
-          human-corrected. Find someone, read their story, or claim your own
-          page.
-        </p>
-      </section>
-
-      <div className="rule-double" />
 
       {/* Controls */}
       <section className="py-4 flex flex-wrap items-center gap-3">
@@ -215,7 +189,7 @@ export default function DirectoryPage() {
             <Link
               key={p.id}
               href={`/p/${p.slug}`}
-              className="grid grid-cols-[1.4fr_2fr_1fr] sm:grid-cols-[1.2fr_2.2fr_1fr_1.2fr] gap-x-4 px-4 py-3 items-baseline group hover:bg-accent-wash/40 transition-colors"
+              className="grid grid-cols-[1.4fr_2fr_1fr] sm:grid-cols-[1.2fr_2.2fr_1fr_1.2fr] gap-x-4 px-4 py-2.5 items-baseline group hover:bg-accent-wash/40 transition-colors"
             >
               <span className="font-display font-semibold text-[15px] group-hover:text-accent-deep transition-colors flex items-baseline gap-1.5 min-w-0">
                 <span className="truncate">{p.name}</span>
@@ -239,15 +213,20 @@ export default function DirectoryPage() {
               <span className="hidden sm:block text-sm truncate">
                 {p.primaryOrg ?? ''}
               </span>
-              <span className="flex flex-wrap gap-1 min-w-0">
-                {(p.tags ?? []).slice(0, 3).map((t) => (
+              <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+                {(p.tags ?? []).slice(0, 2).map((t) => (
                   <span
                     key={t}
-                    className="font-mono text-[10px] px-1.5 py-0.5 bg-moss-wash text-moss truncate max-w-full"
+                    className="font-mono text-[10px] px-1.5 py-0.5 bg-moss-wash text-moss whitespace-nowrap truncate"
                   >
                     {t}
                   </span>
                 ))}
+                {(p.tags?.length ?? 0) > 2 && (
+                  <span className="font-mono text-[10px] text-faint shrink-0">
+                    +{p.tags!.length - 2}
+                  </span>
+                )}
               </span>
             </Link>
           ))}

@@ -53,6 +53,38 @@ const rules = {
     },
     bind: ["isAdmin", "auth.ref('$user.isAdmin')[0] == true"],
   },
+  chats: {
+    allow: {
+      view: "isOwner",
+      create: "isOwner",
+      update: "isOwner",
+      delete: "isOwner",
+    },
+    bind: ["isOwner", "auth.id != null && auth.id in data.ref('owner.id')"],
+  },
+  messages: {
+    allow: {
+      view: "isChatOwner",
+      // Clients only write their own user turns; assistant replies are
+      // streamed in server-side via the admin SDK
+      create: "isChatOwner && data.role == 'user'",
+      update: "false",
+      delete: "isChatOwner",
+    },
+    bind: [
+      "isChatOwner",
+      "auth.id != null && auth.id in data.ref('chat.owner.id')",
+    ],
+  },
+  voiceProfiles: {
+    allow: {
+      view: "isOwner",
+      create: "isOwner",
+      update: "isOwner",
+      delete: "isOwner",
+    },
+    bind: ["isOwner", "auth.id != null && auth.id in data.ref('owner.id')"],
+  },
   claims: {
     allow: {
       view: "isAdmin || auth.id in data.ref('user.id')",

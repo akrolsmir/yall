@@ -55,6 +55,30 @@ const _schema = i.schema({
       createdAt: i.number().indexed(),
       finishedAt: i.number().optional(),
     }),
+    // AI chat threads, one per conversation on /chat
+    chats: i.entity({
+      title: i.string(),
+      createdAt: i.number().indexed(),
+      updatedAt: i.number().indexed(),
+    }),
+    // One per chat turn. Assistant replies stream in via the admin SDK:
+    // content/trace update live while status === 'streaming'.
+    messages: i.entity({
+      role: i.string(), // user | assistant
+      content: i.string(),
+      status: i.string(), // done | streaming | failed
+      error: i.string().optional(),
+      model: i.string().optional(),
+      trace: i.json<{ t: number; kind: string; text: string }[]>().optional(),
+      createdAt: i.number().indexed(),
+    }),
+    // Per-user outreach voice: how they write, and who they know
+    voiceProfiles: i.entity({
+      styleNotes: i.string().optional(),
+      writingSamples: i.string().optional(),
+      network: i.string().optional(),
+      updatedAt: i.number().optional(),
+    }),
     // Claim requests that need admin approval (no email match)
     claims: i.entity({
       status: i.string().indexed(), // pending | approved | rejected
@@ -92,6 +116,28 @@ const _schema = i.schema({
     runPerson: {
       forward: { on: "runs", has: "one", label: "person" },
       reverse: { on: "people", has: "many", label: "runs" },
+    },
+    chatOwner: {
+      forward: { on: "chats", has: "one", label: "owner", onDelete: "cascade" },
+      reverse: { on: "$users", has: "many", label: "chats" },
+    },
+    messageChat: {
+      forward: {
+        on: "messages",
+        has: "one",
+        label: "chat",
+        onDelete: "cascade",
+      },
+      reverse: { on: "chats", has: "many", label: "messages" },
+    },
+    voiceProfileOwner: {
+      forward: {
+        on: "voiceProfiles",
+        has: "one",
+        label: "owner",
+        onDelete: "cascade",
+      },
+      reverse: { on: "$users", has: "one", label: "voiceProfile" },
     },
     claimPerson: {
       forward: { on: "claims", has: "one", label: "person" },

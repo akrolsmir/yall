@@ -126,10 +126,15 @@ type PersonLite = {
   slug: string;
   status: string;
   humanEdited?: boolean;
+  claimedBy?: { id: string } | null;
 };
+
+const GEN_BATCH = 10;
 
 function GenerationPanel({ people }: { people: PersonLite[] }) {
   const [busy, setBusy] = useState(false);
+  const [runProgress, setRunProgress] = useState<string | null>(null);
+  const stopRef = useRef(false);
 
   const counts = useMemo(() => {
     const c = { none: 0, queued: 0, generating: 0, generated: 0, failed: 0 };
@@ -158,6 +163,49 @@ function GenerationPanel({ people }: { people: PersonLite[] }) {
     }
   };
 
+  // Fast-generate everyone without a profile, GEN_BATCH at a time via the
+  // server. Stopping mid-run leaves the rest "queued"; rerunning picks them up.
+  const generateAllUnprofiled = async () => {
+    const targets = people.filter(
+      (p) =>
+        ['none', 'queued', 'failed'].includes(p.status) &&
+        !p.humanEdited &&
+        !p.claimedBy,
+    );
+    if (!targets.length) return;
+    setBusy(true);
+    stopRef.current = false;
+    try {
+      for (let i = 0; i < targets.length; i += TX_CHUNK) {
+        await db.transact(
+          targets
+            .slice(i, i + TX_CHUNK)
+            .map((p) => db.tx.people[p.id].update({ status: 'queued' })),
+        );
+      }
+      setRunProgress(`0 / ${targets.length}`);
+      for (let i = 0; i < targets.length; i += GEN_BATCH) {
+        if (stopRef.current) break;
+        const batch = targets.slice(i, i + GEN_BATCH);
+        await Promise.allSettled(
+          batch.map((p) =>
+            fetch('/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ personId: p.id, mode: 'fast' }),
+            }),
+          ),
+        );
+        setRunProgress(
+          `${Math.min(i + GEN_BATCH, targets.length)} / ${targets.length}`,
+        );
+      }
+    } finally {
+      setBusy(false);
+      setRunProgress(null);
+    }
+  };
+
   const stat = (label: string, n: number, tone = 'text-ink') => (
     <div className="text-center px-4">
       <p className={`font-display font-semibold text-2xl ${tone}`}>
@@ -183,19 +231,32 @@ function GenerationPanel({ people }: { people: PersonLite[] }) {
           {stat('Failed', counts.failed, 'text-accent-deep')}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setStatuses(['none'], 'queued')}
-            disabled={busy || counts.none === 0}
-            className="font-mono text-[10px] uppercase tracking-widest bg-ink text-paper px-3 py-2 hover:bg-accent transition-colors disabled:opacity-40"
-          >
-            Queue all unprofiled
-          </button>
+          {runProgress ? (
+            <button
+              onClick={() => {
+                stopRef.current = true;
+              }}
+              className="font-mono text-[10px] uppercase tracking-widest bg-accent text-paper px-3 py-2 hover:bg-accent-deep transition-colors"
+            >
+              ⚡ {runProgress} — stop
+            </button>
+          ) : (
+            <button
+              onClick={generateAllUnprofiled}
+              disabled={
+                busy || counts.none + counts.queued + counts.failed === 0
+              }
+              className="font-mono text-[10px] uppercase tracking-widest bg-ink text-paper px-3 py-2 hover:bg-accent transition-colors disabled:opacity-40"
+            >
+              ⚡ Generate all unprofiled (fast)
+            </button>
+          )}
           <button
             onClick={() => setStatuses(['failed'], 'queued')}
             disabled={busy || counts.failed === 0}
             className="font-mono text-[10px] uppercase tracking-widest border border-ink px-3 py-2 hover:bg-ink hover:text-paper transition-colors disabled:opacity-40"
           >
-            Retry failed
+            Queue failed
           </button>
           <button
             onClick={() => setStatuses(['queued'], 'none')}
@@ -207,13 +268,15 @@ function GenerationPanel({ people }: { people: PersonLite[] }) {
         </div>
       </div>
       <p className="mt-4 text-xs text-ink-soft">
-        Queueing marks people for the local batch script. Run{' '}
+        “Generate all unprofiled” runs fast (Haiku) profile generation through
+        the server, {GEN_BATCH} people at a time — keep this tab open while it
+        works; stopping leaves the rest queued for next time. For deep-mode or
+        very large batches, run{' '}
         <code className="font-mono bg-paper-deep px-1 py-0.5">
           bun run generate
         </code>{' '}
-        in the repo (needs <code className="font-mono">ANTHROPIC_API_KEY</code>{' '}
-        in .env) — it researches each queued person on the web and writes their
-        profile. Human-edited profiles are never queued or overwritten.
+        from the repo instead. Human-edited and claimed profiles are never
+        touched.
       </p>
     </Panel>
   );
